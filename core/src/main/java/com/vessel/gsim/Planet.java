@@ -9,6 +9,13 @@ public class Planet {
     public Sprite surface, clouds; 
     public float surfaceRotation, cloudsRotation;
 
+    public Planet(String name, float radius, float x, float y, float surfaceRotation) {
+        this.name = name;
+        this.radius = radius;
+        this.x = x;
+        this.y = y;
+        this.surfaceRotation = surfaceRotation;
+    }
     public Planet(String name, float radius, float x, float y, float surfaceRotation, float cloudsRotation) {
         this.name = name;
         this.radius = radius;

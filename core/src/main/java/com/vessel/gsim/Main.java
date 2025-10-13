@@ -1,6 +1,7 @@
 package com.vessel.gsim;
 
 import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.GL20;
@@ -14,19 +15,26 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import static java.lang.System.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import static com.badlogic.gdx.Gdx.*;
 
 public class Main extends ApplicationAdapter {
+    Simulation simulation;
+
+    List<Planet> planets;
+
     final int WINDOW_WIDTH = 640;
     final int WINDOW_HEIGHT = 360;
 
     final float WORLD_WIDTH = 1366;
     final float WORLD_HEIGHT = 768;
 
-    final String PLANET_PATH = "error.png";
-
     OrthographicCamera camera;
     OrthographicCamera staticCamera;
+    OrthographicCamera worldCamera;
     Viewport viewport;
 
     boolean isFullscreen = false;
@@ -34,24 +42,20 @@ public class Main extends ApplicationAdapter {
 
     Sprite background;
 
-    Sprite earthSprite;
-    Sprite earthCloudsSprite;
     SpriteBatch batch;
 
     long frame = 0;
-
+    int targetFPS = 60;
+    
     @Override
     public void create() {
-        graphics.setVSync(false);
-        graphics.setForegroundFPS(Integer.MAX_VALUE);
+        simulation = new Simulation();
 
-        background = new Sprite( new Texture( "milkyway4k.png") );
+        graphics.setVSync(false );
+        graphics.setForegroundFPS( Integer.MAX_VALUE );
+
+        background = new Sprite( new Texture( "milkyway4k.png" ) );
         background.getTexture().setFilter( TextureFilter.Linear, TextureFilter.Linear );
-        earthSprite = new Sprite( new Texture( "planets/" + PLANET_PATH ) );
-        earthCloudsSprite = new Sprite( new Texture( "planets/clouds/" + PLANET_PATH ) );
-
-        earthSprite.setOriginCenter();
-        earthCloudsSprite.setOriginCenter();
 
         batch = new SpriteBatch();
         graphics.setWindowedMode( WINDOW_WIDTH, WINDOW_HEIGHT );
@@ -61,11 +65,51 @@ public class Main extends ApplicationAdapter {
         camera = new OrthographicCamera();
         staticCamera = new OrthographicCamera();
         staticCamera.setToOrtho( false, graphics.getWidth(), graphics.getHeight() );
+        worldCamera = new OrthographicCamera();
+        worldCamera.setToOrtho( false, WORLD_WIDTH, WORLD_HEIGHT );
         viewport = new FitViewport( WORLD_WIDTH, WORLD_HEIGHT, camera );
+        createPlanets();
+        planets = simulation.getPlanets();
     }
 
+    public void createPlanets() {
+        simulation.addPlanet( "Sun", 5, 1000, 0, 0.02f / 25f );
+        simulation.addPlanet( "Earth", 5, 0, 0, 0.02f, 0.1f ); 
+    }
+    float lastMouseX = 0;
+    float lastMouseY = 0;
+    boolean isRMB = false;
     public void inputHandler() {
         input.setInputProcessor( new InputAdapter() {
+            @Override
+            public boolean touchDown( int screenX, int screenY, int pointer, int button ) {
+                if ( button == Buttons.RIGHT ) {
+                    lastMouseX = screenX;
+                    lastMouseY = screenY;
+                    isRMB = true;
+                    return true;
+                }
+                return false;
+            }
+            @Override
+            public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+                if ( button == Buttons.RIGHT ) isRMB = false;
+                return true;
+            }
+            @Override
+            public boolean touchDragged( int screenX, int screenY, int pointer ) {
+                if ( isRMB ) {
+                    float deltaX = ( screenX - lastMouseX ) * camera.zoom * ( WORLD_WIDTH / graphics.getWidth() );
+                    float deltaY = ( screenY - lastMouseY ) * camera.zoom * ( WORLD_HEIGHT / graphics.getHeight() );
+                    camera.translate( -deltaX , deltaY );
+                    camera.update();
+
+                    lastMouseX = screenX;
+                    lastMouseY = screenY;
+                }
+                return true;
+            }
+
             @Override
             public boolean keyDown( int keycode ) {
                 if ( keycode == Keys.F ) {
@@ -92,54 +136,65 @@ public class Main extends ApplicationAdapter {
 
     @Override
 	public void resize ( int width, int height ) {
-        viewport.update( width, height, true );
+        viewport.update( width, height, false );
         staticCamera.setToOrtho( false, width, height );
     }
-
+    float deltaTime;
     @Override
     public void render() {
         gl.glClearColor(0, 0, 0, 1);
         gl.glClear( GL20.GL_COLOR_BUFFER_BIT );
 
-        float deltaTime = graphics.getDeltaTime();
-
-        float screenCX = viewport.getWorldWidth() / 2;
-        float screenCY = viewport.getWorldHeight() / 2;
-        float earthX = screenCX - earthSprite.getWidth() / 2;
-        float earthY = screenCY - earthSprite.getHeight() / 2;
+        deltaTime = graphics.getDeltaTime();
 
         //x = input.getX();
         //y = input.getY();
         //Vector2 mouse = new Vector2( x, y );
         //viewport.unproject( mouse );
 
-        earthSprite.setPosition( earthX, earthY );
-        earthCloudsSprite.setPosition( earthX, earthY );
-
-        //background.setPosition(-background.getWidth() / 2, -background.getHeight() / 2);
         float bgScale = 2f;
         float bgWidth = graphics.getWidth() * bgScale;
         float bgHeight = graphics.getHeight() * bgScale;
         float bgX = -( bgWidth - graphics.getWidth() ) / 2;
         float bgY = -( bgHeight - graphics.getHeight() ) / 2;
+        deltaTime = graphics.getDeltaTime();
 
         batch.setProjectionMatrix( staticCamera.combined );
         batch.begin();
         batch.draw( background, bgX, bgY, bgWidth, bgHeight );
         batch.end();
 
-        batch.setProjectionMatrix( camera.combined );
-        batch.begin();
-        earthSprite.draw( batch );
-        earthCloudsSprite.draw( batch );
-        //earthAtmosphereSprite.draw( batch );
-        batch.end();
+        
+        
+        drawPlanets();
+        
 
         cameraMov();
 
-        earthSprite.rotate( 0.02f * deltaTime * 60 );
-        earthCloudsSprite.rotate( 0.1f * deltaTime * 60 );
-        if ( frame++ % 30 == 0 ) out.println( graphics.getFramesPerSecond() + " FPS" );
+        //if ( frame++ % 30 == 0 ) out.println( graphics.getFramesPerSecond() + " FPS" );
+    }
+
+    public void drawPlanets() {
+        batch.setProjectionMatrix( camera.combined );
+        batch.begin();
+        for ( Planet planet : planets ) {
+            Sprite surface = planet.surface;
+            Sprite clouds = planet.clouds;
+
+            float drawX = planet.x - viewport.getWorldWidth() / 2;
+            float drawY = planet.y - viewport.getWorldHeight() / 2;
+            
+            surface.setPosition( drawX, drawY );
+            surface.rotate( planet.surfaceRotation * deltaTime * targetFPS );
+            surface.draw( batch );
+
+            if ( clouds != null ) {
+                clouds.setPosition( drawX, drawY );
+                clouds.rotate( planet.cloudsRotation * deltaTime * targetFPS );
+                clouds.draw( batch );
+            }
+        }
+        batch.end();
     }
 
     float camSpeed;
