@@ -6,6 +6,7 @@ import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
@@ -22,17 +23,19 @@ public class Main extends ApplicationAdapter {
     final float WORLD_WIDTH = 1366;
     final float WORLD_HEIGHT = 768;
 
-    final String PLANET_PATH = "earth250.png";
+    final String PLANET_PATH = "error.png";
 
     OrthographicCamera camera;
+    OrthographicCamera staticCamera;
     Viewport viewport;
 
     boolean isFullscreen = false;
     boolean fWasPressed = false;
 
+    Sprite background;
+
     Sprite earthSprite;
     Sprite earthCloudsSprite;
-    Sprite earthAtmosphereSprite;
     SpriteBatch batch;
 
     long frame = 0;
@@ -42,9 +45,11 @@ public class Main extends ApplicationAdapter {
         graphics.setVSync(false);
         graphics.setForegroundFPS(Integer.MAX_VALUE);
 
+        background = new Sprite( new Texture( "milkyway4k.png") );
+        background.getTexture().setFilter( TextureFilter.Linear, TextureFilter.Linear );
         earthSprite = new Sprite( new Texture( "planets/" + PLANET_PATH ) );
         earthCloudsSprite = new Sprite( new Texture( "planets/clouds/" + PLANET_PATH ) );
-        earthAtmosphereSprite = new Sprite( new Texture( "planets/atmosphere/" + PLANET_PATH ) );
+
         earthSprite.setOriginCenter();
         earthCloudsSprite.setOriginCenter();
 
@@ -54,6 +59,8 @@ public class Main extends ApplicationAdapter {
         inputHandler();
 
         camera = new OrthographicCamera();
+        staticCamera = new OrthographicCamera();
+        staticCamera.setToOrtho( false, graphics.getWidth(), graphics.getHeight() );
         viewport = new FitViewport( WORLD_WIDTH, WORLD_HEIGHT, camera );
     }
 
@@ -86,6 +93,7 @@ public class Main extends ApplicationAdapter {
     @Override
 	public void resize ( int width, int height ) {
         viewport.update( width, height, true );
+        staticCamera.setToOrtho( false, width, height );
     }
 
     @Override
@@ -107,13 +115,24 @@ public class Main extends ApplicationAdapter {
 
         earthSprite.setPosition( earthX, earthY );
         earthCloudsSprite.setPosition( earthX, earthY );
-        earthAtmosphereSprite.setPosition( earthX, earthY );
+
+        //background.setPosition(-background.getWidth() / 2, -background.getHeight() / 2);
+        float bgScale = 2f;
+        float bgWidth = graphics.getWidth() * bgScale;
+        float bgHeight = graphics.getHeight() * bgScale;
+        float bgX = -( bgWidth - graphics.getWidth() ) / 2;
+        float bgY = -( bgHeight - graphics.getHeight() ) / 2;
+
+        batch.setProjectionMatrix( staticCamera.combined );
+        batch.begin();
+        batch.draw( background, bgX, bgY, bgWidth, bgHeight );
+        batch.end();
 
         batch.setProjectionMatrix( camera.combined );
         batch.begin();
         earthSprite.draw( batch );
         earthCloudsSprite.draw( batch );
-        earthAtmosphereSprite.draw( batch );
+        //earthAtmosphereSprite.draw( batch );
         batch.end();
 
         cameraMov();
@@ -124,12 +143,27 @@ public class Main extends ApplicationAdapter {
     }
 
     float camSpeed;
+    float parallaxSpeed;
     public void cameraMov() {
         camSpeed = 15 * graphics.getDeltaTime() * 60;
-        if ( input.isKeyPressed( Keys.W ) ) camera.translate( 0, camSpeed );
-        if ( input.isKeyPressed( Keys.A ) ) camera.translate( -camSpeed, 0 );
-        if ( input.isKeyPressed( Keys.S ) ) camera.translate( 0, -camSpeed );
-        if ( input.isKeyPressed( Keys.D ) ) camera.translate( camSpeed, 0 );
+        parallaxSpeed = 0.1f * graphics.getDeltaTime() * 60;
+        if ( input.isKeyPressed( Keys.W ) ) { 
+            camera.translate( 0, camSpeed );
+            staticCamera.translate( 0, parallaxSpeed );
+        }
+        if ( input.isKeyPressed( Keys.A ) ) { 
+            camera.translate( -camSpeed, 0 );
+            staticCamera.translate( -parallaxSpeed, 0 );
+        }
+        if ( input.isKeyPressed( Keys.S ) ) { 
+            camera.translate( 0, -camSpeed );
+            staticCamera.translate( 0, -parallaxSpeed );
+        }
+        if ( input.isKeyPressed( Keys.D ) ) { 
+            camera.translate( camSpeed, 0 );
+            staticCamera.translate( parallaxSpeed, 0 );
+        }
         camera.update();
+        staticCamera.update();
     }
 }
