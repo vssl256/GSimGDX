@@ -16,7 +16,6 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import static java.lang.System.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static com.badlogic.gdx.Gdx.*;
@@ -73,8 +72,9 @@ public class Main extends ApplicationAdapter {
     }
 
     public void createPlanets() {
-        simulation.addPlanet( "Sun", 5, 1000, 0, 0.02f / 25f );
-        simulation.addPlanet( "Earth", 5, 0, 0, 0.02f, 0.1f ); 
+        simulation.addPlanet( "Sun", 1000, 1000, 0, 0.02f / 25f );
+        simulation.addPlanet( "Earth", 10, 0, 0, 0.02f, 0.1f );
+        simulation.addPlanet( "Moon", 2.5f, -400, 0, 0.2f ); 
     }
     float lastMouseX = 0;
     float lastMouseY = 0;
@@ -126,8 +126,9 @@ public class Main extends ApplicationAdapter {
 
             @Override
             public boolean scrolled( float scrollX, float scrollY ) {
-                camera.zoom += scrollY * 0.1;
-                camera.zoom = MathUtils.clamp( camera.zoom, 0.1f, 50 );
+                camera.zoom += scrollY * 0.1 * camera.zoom;
+                camera.zoom = MathUtils.clamp( camera.zoom, 1e-5f, 500 );
+                out.println(camera.zoom);
                 camera.update();
                 return true;
             } 
@@ -181,16 +182,22 @@ public class Main extends ApplicationAdapter {
             Sprite surface = planet.surface;
             Sprite clouds = planet.clouds;
 
+            float radius = planet.radius;
+
             float drawX = planet.x - viewport.getWorldWidth() / 2;
             float drawY = planet.y - viewport.getWorldHeight() / 2;
             
             surface.setPosition( drawX, drawY );
             surface.rotate( planet.surfaceRotation * deltaTime * targetFPS );
+            surface.setSize( radius, radius );
+            surface.setOriginCenter();
             surface.draw( batch );
 
             if ( clouds != null ) {
                 clouds.setPosition( drawX, drawY );
                 clouds.rotate( planet.cloudsRotation * deltaTime * targetFPS );
+                clouds.setSize( radius, radius );
+                clouds.setOriginCenter();
                 clouds.draw( batch );
             }
         }
