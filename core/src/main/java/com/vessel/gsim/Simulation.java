@@ -1,11 +1,13 @@
 package com.vessel.gsim;
 
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.GdxRuntimeException;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Sprite;
-import com.badlogic.gdx.utils.GdxRuntimeException;
 import static com.badlogic.gdx.Gdx.*;
 
 public class Simulation {
@@ -14,9 +16,9 @@ public class Simulation {
 
     Texture surfaceError = new Texture( "planets/error.png" );
     Texture cloudsError = new Texture( "planets/clouds/error.png" );
-    
-    public void addPlanet(String name, float radius, float x, float y, float surfaceRotation) {
-        Planet planet = new Planet(name, radius, x, y, surfaceRotation);
+
+    public void addPlanet( String name, double mass, double radius, double x, double y, float surfaceRotation, double vx, double vy ) {
+        Planet planet = new Planet( name, mass, radius, x, y, surfaceRotation, vx, vy );
         try {
             planet.surface = new Sprite( new Texture( "planets/" + planet.name + ".png" ) );
         } catch ( GdxRuntimeException e ) {
@@ -25,10 +27,10 @@ public class Simulation {
         }
         planet.surface.setOriginCenter();
 
-        planets.add(planet);
+        planets.add( planet );
     }
-    public void addPlanet(String name, float radius, float x, float y, float surfaceRotation, float cloudsRotation) {
-        Planet planet = new Planet(name, radius, x, y, surfaceRotation, cloudsRotation);
+    public void addPlanet( String name, double mass, double radius, double x, double y, float surfaceRotation, float cloudsRotation ) {
+        Planet planet = new Planet( name, mass, radius, x, y, surfaceRotation, cloudsRotation );
         try {
             planet.surface = new Sprite( new Texture( "planets/" + planet.name + ".png" ) );
         } catch ( GdxRuntimeException e ) {
@@ -38,7 +40,7 @@ public class Simulation {
         try {
             planet.clouds = new Sprite( new Texture( "planets/clouds/" + planet.name + ".png" ) );
         } catch ( GdxRuntimeException e ) {
-            planet.clouds = new Sprite( surfaceError );
+            planet.clouds = new Sprite( cloudsError );
             app.log( "Simulation", "Clouds texture not found for " + planet.name );
         }
         planet.surface.setOriginCenter();

@@ -1,0 +1,6 @@
+This project uses textures, that based on NASA data.
+
+Credits
+
+NASA JPL
+NASA's Scientific Visualization Studio
